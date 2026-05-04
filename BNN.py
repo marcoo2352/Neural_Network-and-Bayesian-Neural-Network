@@ -3,8 +3,8 @@ import tensorflow as tf
 import tensorflow_probability as tfp
 import matplotlib.pyplot as plt
 import math
-from tensorflow import keras
-
+# from tensorflow import keras
+import tf_keras as keras
 #setting seed
 np.random.seed(0)
 tf.random.set_seed(0)
@@ -14,7 +14,7 @@ tfd = tfp.distributions
 
 
 # Data Generation
-
+EPOCH = 100
 
 
 def random_vector(N):
@@ -62,6 +62,12 @@ def build_bnn(input_shape, num_train_examples):
     inputs = keras.Input(shape=input_shape)
     # we use the KL to the loss function
     x = tfpl.DenseFlipout(
+        128, activation='relu',
+        kernel_divergence_fn=scaled_kl,
+        bias_divergence_fn=scaled_kl
+    )(inputs)
+
+    x = tfpl.DenseFlipout(
         32, activation='relu',
         kernel_divergence_fn=scaled_kl,
         bias_divergence_fn=scaled_kl
@@ -90,8 +96,8 @@ def build_bnn(input_shape, num_train_examples):
 # Data Generating
 # ##############
 
-N_train = 10000
-N_test  = 2000
+N_train = 1000000
+N_test  = 20000
 
 V = random_vector(N_train)
 Y = compute_y(V)
@@ -129,6 +135,7 @@ for i in range(4):
 
 model = keras.Sequential([
     keras.layers.Input(shape=(4,)),
+    keras.layers.Dense(128, activation='relu'),
     keras.layers.Dense(32, activation='relu'),
     keras.layers.Dense(16, activation='relu'),
     keras.layers.Dense(1)
@@ -137,7 +144,7 @@ model = keras.Sequential([
 # we use adam optimizer and not gradient descend because it has better performance
 # the algorithm work also with gd
 model.compile(optimizer='adam', loss='mse')
-model.fit(V_scaled, Y_scaled, epochs=50, batch_size=64, verbose=1)
+model.fit(V_scaled, Y_scaled, epochs=EPOCH, batch_size=128, verbose=1)
 
 Y_pred_scaled = model.predict(V_test_scaled)
 # I descale the data
@@ -165,8 +172,8 @@ modelbay.compile(optimizer='adam', loss=negative_log_likelihood)
 # Bayesian Neural Network need more training
 history = modelbay.fit(
     V_scaled, Y_scaled,
-    epochs=200,
-    batch_size=64,
+    epochs=EPOCH,
+    batch_size=128,
     validation_split=0.2,
     verbose=1
 )
